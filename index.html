@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertical Geological Timeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background-color: #1e3a8a;
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #bfdbfe;
+            font-size: 12px;
+        }
+
+        .controls {
+            background-color: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 80px;
+            z-index: 99;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-btn {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .nav-btn:hover {
+            background-color: #bfdbfe;
+        }
+
+        .zoom-btn {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .zoom-btn:hover {
+            background-color: #bbf7d0;
+        }
+
+        .zoom-level {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 0 8px;
+        }
+
+        .timeline-container {
+            flex: 1;
+            display: flex;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        .timeline-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+            padding: 20px;
+        }
+
+        .timeline {
+            position: relative;
+            width: 100%;
+            min-height: 4600px;
+            border-left: 4px solid #000;
+            margin-left: 100px;
+            transition: transform 0.3s ease;
+            padding-bottom: 1500px;
+        }
+
+        .era {
+            position: absolute;
+            left: 0;
+            right: 0;
+            border-bottom: 2px solid #6b7280;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            margin-left: -100px;
+        }
+
+        .era-info {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            margin-right: 15px;
+            min-width: 120px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .era-name {
+            font-weight: bold;
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+
+        .era-time {
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .era-band {
+            flex: 1;
+            height: 100%;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        .hadean { background-color: #ffcccc; }
+        .archean { background-color: #ffdddd; }
+        .proterozoic { background-color: #e6ccff; }
+        .paleozoic { background-color: #cce6ff; }
+        .mesozoic { background-color: #ccffcc; }
+        .cenozoic { background-color: #ffffcc; }
+
+        .event {
+            position: absolute;
+            left: 4px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .event-marker {
+            width: 40px;
+            height: 3px;
+            background-color: #dc2626;
+            transition: background-color 0.2s;
+            border-radius: 2px;
+        }
+
+        .event:hover .event-marker {
+            background-color: #991b1b;
+            height: 4px;
+        }
+
+        .event-label {
+            margin-left: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #374151;
+            white-space: nowrap;
+            transition: color 0.2s;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .event:hover .event-label {
+            color: #000;
+            border-color: #dc2626;
+        }
+
+        .event-time {
+            margin-left: 8px;
+            font-size: 9px;
+            color: #6b7280;
+            white-space: nowrap;
+            background: #f9fafb;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+
+        /* Special styling for recent events (last 100 MYA) */
+        .recent-event {
+            margin-bottom: 40px;
+        }
+
+        .recent-event .event-label {
+            font-size: 14px;
+            padding: 8px 12px;
+            font-weight: 600;
+            min-width: 140px;
+        }
+
+        .recent-event .event-marker {
+            width: 70px;
+            height: 6px;
+        }
+
+        .recent-event .event-time {
+            font-size: 12px;
+            padding: 4px 10px;
+            font-weight: 500;
+        }
+
+        /* Extra spacing for very recent events (last 10 MYA) */
+        .very-recent-event {
+            margin-bottom: 80px;
+        }
+
+        .very-recent-event .event-label {
+            font-size: 16px;
+            padding: 10px 15px;
+            font-weight: 700;
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            min-width: 160px;
+        }
+
+        .very-recent-event .event-marker {
+            width: 100px;
+            height: 8px;
+            background-color: #f59e0b;
+        }
+
+        .very-recent-event:hover .event-marker {
+            background-color: #d97706;
+        }
+
+        .very-recent-event .event-time {
+            font-size: 13px;
+            padding: 5px 12px;
+            font-weight: 600;
+        }
+
+        .scale-marker {
+            position: absolute;
+            left: -20px;
+            right: 0;
+            height: 2px;
+            background-color: #000;
+            display: flex;
+            align-items: center;
+        }
+
+        .scale-label {
+            margin-left: -80px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #000;
+        }
+
+        .event-details {
+            width: 300px;
+            background-color: white;
+            border-left: 1px solid #e5e7eb;
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .event-details.active {
+            display: block;
+        }
+
+        .event-details h3 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .event-details .time {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 12px;
+            padding: 4px 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .event-details .description {
+            color: #374151;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .close-btn {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 10px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #374151;
+            background-color: #f3f4f6;
+        }
+
+        .footer {
+            background-color: #f3f4f6;
+            border-top: 1px solid #e5e7eb;
+            padding: 8px 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .info-text {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .now-marker {
+            position: absolute;
+            bottom: 0;
+            left: -100px;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to right, #ef4444, #dc2626);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Vertical Geological Timeline of Earth</h1>
+        <p>Scale: 1 meter = 1 Billion Years | Total Height: 4.6 meters | Top = 4.6 BYA, Bottom = NOW</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <button class="nav-btn" onclick="scroll('up')">↑ Up</button>
+            <button class="nav-btn" onclick="scroll('down')">↓ Down</button>
+        </div>
+        
+        <div class="control-group">
+            <button class="zoom-btn" onclick="zoom('out')">Zoom Out</button>
+            <span class="zoom-level" id="zoomLevel">Zoom: 100%</span>
+            <button class="zoom-btn" onclick="zoom('in')">Zoom In</button>
+        </div>
+
+        <div class="control-group">
+            <button class="nav-btn" onclick="goToNow()">Go to NOW</button>
+            <button class="nav-btn" onclick="goToBeginning()">Go to Beginning</button>
+        </div>
+
+        <div class="info-text">
+            Click on events for details | Scroll or use controls to navigate
+        </div>
+    </div>
+
+    <div class="timeline-container">
+        <div class="timeline-wrapper" id="timelineWrapper">
+            <div class="timeline" id="timeline">
+                <!-- Timeline content will be added by JavaScript -->
+            </div>
+        </div>
+
+        <div class="event-details" id="eventDetails">
+            <button class="close-btn" onclick="closeEventDetails()">×</button>
+            <h3 id="eventTitle"></h3>
+            <div class="time" id="eventTime"></div>
+            <div class="description" id="eventDescription"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Vertical geological timeline • 4.6 billion years from top to bottom • Click events for details
+    </div>
+
+    <script>
+        let zoomLevel = 1;
+        let selectedEvent = null;
+
+        // Geological eras data - now calculated from top (4600 MYA) to bottom (0 MYA)
+        const eras = [
+            { name: 'HADEAN', start: 4600, end: 4000, class: 'hadean' },
+            { name: 'ARCHEAN', start: 4000, end: 2500, class: 'archean' },
+            { name: 'PROTEROZOIC', start: 2500, end: 541, class: 'proterozoic' },
+            { name: 'PALEOZOIC', start: 541, end: 252, class: 'paleozoic' },
+            { name: 'MESOZOIC', start: 252, end: 66, class: 'mesozoic' },
+            { name: 'CENOZOIC', start: 66, end: 0, class: 'cenozoic' }
+        ];
+
+        // Major events in Earth's history
+        const majorEvents = [
+            { name: 'Formation of Earth', time: 4600, description: 'Earth forms from accretion of dust and gas' },
+            { name: 'Formation of Moon', time: 4500, description: 'Giant impact creates the Moon' },
+            { name: 'End of Heavy Bombardment', time: 3800, description: 'Asteroid impacts decrease significantly' },
+            { name: 'First Life (Prokaryotes)', time: 3500, description: 'Simple bacteria and archaea appear' },
+            { name: 'Photosynthesis Begins', time: 3000, description: 'Cyanobacteria start producing oxygen' },
+            { name: 'Great Oxidation Event', time: 2400, description: 'Oxygen levels rise dramatically' },
+            { name: 'First Eukaryotic Cells', time: 2000, description: 'Complex cells with nuclei evolve' },
+            { name: 'First Multicellular Life', time: 1000, description: 'Complex multicellular organisms appear' },
+            { name: 'Cambrian Explosion', time: 541, description: 'Rapid diversification of animal life' },
+            { name: 'First Fish', time: 500, description: 'Vertebrates appear in the oceans' },
+            { name: 'Plants Colonize Land', time: 450, description: 'First terrestrial plant life' },
+            { name: 'First Amphibians', time: 365, description: 'Vertebrates move onto land' },
+            { name: 'First Reptiles', time: 320, description: 'Amniotic eggs allow land colonization' },
+            { name: 'Permian Extinction', time: 252, description: 'Largest mass extinction event' },
+            { name: 'First Dinosaurs', time: 230, description: 'Dinosaurs begin to dominate' },
+            { name: 'First Mammals', time: 200, description: 'Small mammalian ancestors appear' },
+            { name: 'First Birds', time: 150, description: 'Feathered flight evolves' },
+            { name: 'First Flowering Plants', time: 130, description: 'Angiosperms revolutionize plant life' },
+            { name: 'K-Pg Extinction', time: 66, description: 'Asteroid impact ends dinosaur era' },
+            { name: 'Rise of Mammals', time: 60, description: 'Mammals diversify rapidly' },
+            { name: 'First Primates', time: 55, description: 'Early primate ancestors appear' },
+            { name: 'First Grasses', time: 40, description: 'Grasslands begin to spread' },
+            { name: 'First Hominins', time: 7, description: 'Human lineage diverges from apes' },
+            { name: 'First Stone Tools', time: 2.6, description: 'Homo habilis uses tools' },
+            { name: 'Homo sapiens', time: 0.3, description: 'Modern humans appear' },
+            { name: 'Agriculture', time: 0.01, description: 'Farming revolutionizes society' },
+            { name: 'Industrial Revolution', time: 0.0002, description: 'Technology accelerates' },
+        ];
+
+        function timeToPosition(timeInMYA) {
+            // Convert time to vertical position (0 = top/4600 MYA, 4600 = bottom/NOW)
+            return (4600 - timeInMYA);
+        }
+
+        function formatTime(time) {
+            if (time > 1) return `${time} MYA`;
+            if (time === 0) return 'NOW';
+            return `${(time * 1000).toFixed(0)} KYA`;
+        }
+
+        function formatEventTime(time) {
+            if (time > 1) return `${time} million years ago`;
+            if (time === 0) return 'Present day';
+            return `${(time * 1000).toFixed(0)} thousand years ago`;
+        }
+
+        function createTimeline() {
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+
+            // Set timeline height
+            timeline.style.height = `${4600 * zoomLevel}px`;
+
+            // Create eras
+            eras.forEach(era => {
+                const startPos = timeToPosition(era.start);
+                const endPos = timeToPosition(era.end);
+                const height = endPos - startPos;
+
+                const eraDiv = document.createElement('div');
+                eraDiv.className = 'era';
+                eraDiv.style.top = `${startPos * zoomLevel}px`;
+                eraDiv.style.height = `${height * zoomLevel}px`;
+                
+                eraDiv.innerHTML = `
+                    <div class="era-info">
+                        <div class="era-name">${era.name}</div>
+                        <div class="era-time">${era.start} - ${era.end} MYA</div>
+                    </div>
+                    <div class="era-band ${era.class}"></div>
+                `;
+                
+                timeline.appendChild(eraDiv);
+            });
+
+            // Create events
+            majorEvents.forEach(event => {
+                const position = timeToPosition(event.time);
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'event';
+                eventDiv.style.top = `${position * zoomLevel}px`;
+                eventDiv.onclick = () => showEventDetails(event);
+                
+                eventDiv.innerHTML = `
+                    <div class="event-marker"></div>
+                    <div class="event-label">${event.name}</div>
+                    <div class="event-time">${formatTime(event.time)}</div>
+                `;
+                
+                timeline.appendChild(eventDiv);
+            });
+
+            // Create scale markers every 500 MY
+            for (let mya = 0; mya <= 4600; mya += 500) {
+                const position = timeToPosition(mya);
+                const markerDiv = document.createElement('div');
+                markerDiv.className = 'scale-marker';
+                markerDiv.style.top = `${position * zoomLevel}px`;
+                
+                markerDiv.innerHTML = `<div class="scale-label">${mya} MYA</div>`;
+                timeline.appendChild(markerDiv);
+            }
+        }
+
+        function zoom(direction) {
+            if (direction === 'in') {
+                zoomLevel = Math.min(zoomLevel * 1.5, 10);
+            } else {
+                zoomLevel = Math.max(zoomLevel / 1.5, 0.1);
+            }
+            
+            document.getElementById('zoomLevel').textContent = `Zoom: ${(zoomLevel * 100).toFixed(0)}%`;
+            createTimeline();
+        }
+
+        function scroll(direction) {
+            const wrapper = document.getElementById('timelineWrapper');
+            const scrollAmount = 300;
+            
+            if (direction === 'up') {
+                wrapper.scrollTop -= scrollAmount;
+            } else {
+                wrapper.scrollTop += scrollAmount;
+            }
+        }
+
+        function goToNow() {
+            const wrapper = document.getElementById('timelineWrapper');
+            wrapper.scrollTop = wrapper.scrollHeight;
+        }
+
+        function goToBeginning() {
+            const wrapper = document.getElementById('timelineWrapper');
+            wrapper.scrollTop = 0;
+        }
+
+        function showEventDetails(event) {
+            selectedEvent = event;
+            document.getElementById('eventTitle').textContent = event.name;
+            document.getElementById('eventTime').textContent = formatEventTime(event.time);
+            document.getElementById('eventDescription').textContent = event.description;
+            document.getElementById('eventDetails').classList.add('active');
+        }
+
+        function closeEventDetails() {
+            selectedEvent = null;
+            document.getElementById('eventDetails').classList.remove('active');
+        }
+
+        // Initialize timeline
+        createTimeline();
+    </script>
+</body>
+</html>
